@@ -18,6 +18,10 @@ class SocketServer:
         self.app_context = app_context
         # self.socketio = SocketIO(message_queue="amqp://" + self.app_context.app.config.get("OTS_RABBITMQ_SERVER_ADDRESS"), async_mode='gevent')
 
+    def cleanup_dead_clients(self):
+        #Remove disconnected clients from the list
+        self.clients = [c for c in self.clients if c.is_alive()]
+
     def run(self):
         if self.ssl:
             self.socket = self.launch_ssl_server()
@@ -43,10 +47,12 @@ class SocketServer:
                 new_thread.daemon = True
                 new_thread.start()
                 self.clients.append(new_thread)
+                self.cleanup_dead_clients()
             except KeyboardInterrupt:
                 self.socket.close()
                 break
             except TimeoutError:
+                self.cleanup_dead_clients()
                 if self.shutdown:
                     self.socket.shutdown(socket.SHUT_RDWR)
                     self.socket.close()
