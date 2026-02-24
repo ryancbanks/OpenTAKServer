@@ -352,6 +352,13 @@ class ClientController(Thread):
                 break
 
     def close_connection(self):
+        try:
+            self.unbind_rabbitmq_queues()
+            self.send_disconnect_cot()
+        finally:
+            # Ensure cleanup happens regardless of exceptions
+            self.cached_messages.clear()
+            self.bound_queues.clear()
         self.unbind_rabbitmq_queues()
         self.send_disconnect_cot()
 
